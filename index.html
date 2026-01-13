@@ -5,54 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Feature Velocity (2 cycles)</title>
     <style>
+      :root {
+        --max-width: 1040px;
+        --border: #e3e3e3;
+        --muted: #666;
+        --bg: #fafafa;
+      }
+
       body {
         font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-        margin: 24px;
-        max-width: 1000px;
+        margin: 0;
+        background: var(--bg);
+        color: #111;
       }
-      h1 { margin: 0 0 8px; }
-      .sub { color: #555; margin: 0 0 16px; }
 
-      .panel {
+      .wrap {
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding: 20px 18px 28px;
+      }
+
+      header {
+        background: white;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .header-inner {
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding: 18px 18px 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: -0.02em;
+      }
+
+      .sub {
+        margin: 6px 0 0;
+        color: #444;
+        line-height: 1.35;
+      }
+
+      .grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1.2fr 0.8fr;
         gap: 16px;
-        align-items: end;
-        margin: 16px 0 18px;
+        align-items: start;
+        margin-top: 16px;
       }
 
       .card {
-        border: 1px solid #ddd;
-        border-radius: 12px;
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 14px;
         padding: 14px;
+        box-shadow: 0 1px 0 rgba(0,0,0,0.03);
       }
 
-      label { display: block; font-weight: 600; margin-bottom: 6px; }
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
 
-      input {
+      label {
+        display: block;
+        font-weight: 650;
+        margin-bottom: 6px;
+      }
+
+      input[type="number"] {
         width: 100%;
         padding: 10px 12px;
-        border: 1px solid #ccc;
-        border-radius: 10px;
+        border: 1px solid #cfcfcf;
+        border-radius: 12px;
         font-size: 16px;
       }
 
       .hint {
-        color: #666;
+        margin-top: 7px;
+        color: var(--muted);
         font-size: 13px;
-        margin-top: 8px;
         line-height: 1.35;
       }
 
-      .footer {
-        margin-top: 12px;
-        color: #666;
-        font-size: 13px;
+      .statline {
+        margin-top: 10px;
+        color: #222;
+        font-size: 14px;
+        line-height: 1.45;
       }
 
-      /* 👇 This is the key fix */
+      .small {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      /* Chart sizing: keep above the fold */
       .chart-container {
-        height: 360px;       /* Always visible above the fold */
+        height: 420px; /* visible & not tiny */
         position: relative;
       }
 
@@ -61,14 +115,247 @@
         height: 100% !important;
       }
 
-      @media (max-width: 800px) {
-        .panel { grid-template-columns: 1fr; }
-        .chart-container { height: 300px; }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 13px;
+        color: #333;
+        background: #fff;
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0 0;
+      }
+
+      .divider {
+        height: 1px;
+        background: var(--border);
+        margin: 12px 0;
+      }
+
+      footer {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 920px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .chart-container {
+          height: 340px;
+        }
       }
     </style>
   </head>
+
   <body>
-    <h1>Feature Velocity over 2 Cycles</h1>
-    <p class="sub">
-      Adjust the velocity (days to be code-ready for a medium feature) and compare Legacy vs Improved tech stack.
-      Time window = <b>2 cycles</b> (16 weeks). Improved stack
+    <header>
+      <div class="header-inner">
+        <h1>Feature Velocity over 2 Cycles</h1>
+        <p class="sub">
+          Compare cumulative output of <b>medium-sized features</b> over <b>2 cycles</b> (16 weeks).
+          The <b>Improved tech stack</b> has a ramp: <b>0 output during Cycle 1</b>, then starts in <b>Cycle 2</b>.
+        </p>
+
+        <div class="badges">
+          <span class="badge">⏱️ Window: 16 weeks</span>
+          <span class="badge">📈 Y: # features (cumulative)</span>
+          <span class="badge">🧱 Improved ramp: first 8 weeks = 0</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <div class="grid">
+        <!-- LEFT: Chart -->
+        <div class="card">
+          <div class="chart-container">
+            <canvas id="chart"></canvas>
+          </div>
+          <div class="statline" id="summary"></div>
+          <div class="divider"></div>
+          <div class="small">
+            Notes:
+            <ul>
+              <li><b>Legacy</b> accumulates linearly across the full 16 weeks.</li>
+              <li><b>Improved</b> accumulates linearly only during weeks 9–16 (Cycle 2), starting from 0 at week 8.</li>
+              <li>Velocity input is <b>days to be code-ready</b> for a medium feature.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- RIGHT: Controls -->
+        <div class="card">
+          <div class="controls">
+            <div>
+              <label for="legacyDays">Legacy: days per medium feature (code-ready)</label>
+              <input id="legacyDays" type="number" min="0.5" step="0.5" value="8" />
+              <div class="hint">
+                Example: <b>8</b> means ~<b>0.875</b> features/week (7/8).
+              </div>
+            </div>
+
+            <div>
+              <label for="newDays">Improved stack: days per medium feature (code-ready)</label>
+              <input id="newDays" type="number" min="0.5" step="0.5" value="5" />
+              <div class="hint">
+                Ramp behavior: weeks 0–8 output is <b>0</b>, then production starts in Cycle 2.
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="small" id="derived"></div>
+          </div>
+
+          <footer>
+            Model:
+            <code>features = elapsed_days / days_per_feature</code><br />
+            Improved ramp:
+            <code>features = 0</code> for weeks ≤ 8, otherwise
+            <code>((week-8)*7) / days_per_feature</code>.
+          </footer>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart.js via CDN (works on GitHub Pages) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <script>
+      // ==== Config ====
+      const WEEKS_TOTAL = 16;              // 2 cycles
+      const RAMP_WEEKS_IMPROVED = 8;       // C1 is ramp
+      const DAYS_PER_WEEK = 7;
+      const DAYS_TOTAL = WEEKS_TOTAL * DAYS_PER_WEEK;
+
+      const weekLabels = Array.from({ length: WEEKS_TOTAL + 1 }, (_, i) => `W${i}`);
+
+      function clampPositive(n, fallback) {
+        const v = Number(n);
+        return Number.isFinite(v) && v > 0 ? v : fallback;
+      }
+
+      function featuresPerWeek(daysPerFeature) {
+        const dpf = clampPositive(daysPerFeature, 8);
+        return (DAYS_PER_WEEK / dpf);
+      }
+
+      function buildSeriesLinear(daysPerFeature) {
+        const dpf = clampPositive(daysPerFeature, 8);
+        return Array.from({ length: WEEKS_TOTAL + 1 }, (_, week) => {
+          const elapsedDays = week * DAYS_PER_WEEK;
+          return Number((elapsedDays / dpf).toFixed(2));
+        });
+      }
+
+      function buildSeriesWithRamp(daysPerFeature, rampWeeks) {
+        const dpf = clampPositive(daysPerFeature, 5);
+        return Array.from({ length: WEEKS_TOTAL + 1 }, (_, week) => {
+          if (week <= rampWeeks) return 0; // includes week=rampWeeks boundary
+          const productiveWeeks = week - rampWeeks;
+          const elapsedDays = productiveWeeks * DAYS_PER_WEEK;
+          return Number((elapsedDays / dpf).toFixed(2));
+        });
+      }
+
+      // ==== Chart ====
+      const ctx = document.getElementById("chart");
+
+      const chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: weekLabels,
+          datasets: [
+            {
+              label: "Legacy",
+              data: buildSeriesLinear(document.getElementById("legacyDays").value),
+              tension: 0.25,
+              borderWidth: 2,
+              pointRadius: 0
+            },
+            {
+              label: "Improved tech stack (0 in C1)",
+              data: buildSeriesWithRamp(document.getElementById("newDays").value, RAMP_WEEKS_IMPROVED),
+              tension: 0.25,
+              borderWidth: 2,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "top" },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} features`
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: "Time (weeks) — 2 cycles (16 weeks)" }
+            },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "# of medium features (cumulative)" }
+            }
+          }
+        }
+      });
+
+      // ==== UI Updates ====
+      function update() {
+        const legacyDays = clampPositive(document.getElementById("legacyDays").value, 8);
+        const newDays = clampPositive(document.getElementById("newDays").value, 5);
+
+        // update chart
+        chart.data.datasets[0].data = buildSeriesLinear(legacyDays);
+        chart.data.datasets[1].data = buildSeriesWithRamp(newDays, RAMP_WEEKS_IMPROVED);
+        chart.update();
+
+        // totals
+        const legacyTotal = DAYS_TOTAL / legacyDays;
+
+        const productiveDaysImproved = (WEEKS_TOTAL - RAMP_WEEKS_IMPROVED) * DAYS_PER_WEEK; // only C2
+        const improvedTotal = productiveDaysImproved / newDays;
+
+        const delta = improvedTotal - legacyTotal;
+
+        // summary line
+        document.getElementById("summary").innerHTML =
+          `After <b>${WEEKS_TOTAL} weeks</b> (~${DAYS_TOTAL} days): ` +
+          `<b>Legacy</b> ≈ ${legacyTotal.toFixed(2)} features, ` +
+          `<b>Improved</b> ≈ ${improvedTotal.toFixed(2)} features ` +
+          `(Δ ≈ ${delta.toFixed(2)}).`;
+
+        // derived panel
+        const legacyFPW = featuresPerWeek(legacyDays);
+        const improvedFPW = featuresPerWeek(newDays);
+
+        document.getElementById("derived").innerHTML =
+          `<b>Derived rates</b><br/>` +
+          `Legacy ≈ <b>${legacyFPW.toFixed(2)}</b> features/week (during C1+C2)<br/>` +
+          `Improved ≈ <b>${improvedFPW.toFixed(2)}</b> features/week (during C2 only)<br/>` +
+          `<span class="small">Improved effective average across 16 weeks is lower due to the ramp.</span>`;
+      }
+
+      document.getElementById("legacyDays").addEventListener("input", update);
+      document.getElementById("newDays").addEventListener("input", update);
+
+      update();
+    </script>
+  </body>
+</html>
