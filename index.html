@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Feature Velocity (2 cycles)</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        margin: 24px;
+        max-width: 1000px;
+      }
+      h1 { margin: 0 0 8px; }
+      .sub { color: #555; margin: 0 0 16px; }
+      .panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        align-items: end;
+        margin: 16px 0 18px;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        padding: 14px;
+      }
+      label { display: block; font-weight: 600; margin-bottom: 6px; }
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        font-size: 16px;
+      }
+      .hint { color: #666; font-size: 13px; margin-top: 8px; line-height: 1.35; }
+      .footer {
+        margin-top: 16px;
+        color: #666;
+        font-size: 13px;
+      }
+      canvas { margin-top: 8px; }
+      @media (max-width: 800px) {
+        .panel { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Feature Velocity over 2 Cycles</h1>
+    <p class="sub">
+      Adjust the velocity (days to be code-ready for a medium feature) and compare Legacy vs Improved tech stack.
+      Time window = <b>2 cycles</b> (16 weeks). Improved stack ramps: <b>0 output in C1</b>, starts in <b>C2</b>.
+    </p>
+
+    <div class="panel">
+      <div class="card">
+        <label for="legacyDays">Legacy: days per medium feature (code-ready)</label>
+        <input id="legacyDays" type="number" min="1" step="0.5" value="8" />
+        <div class="hint">
+          Example: “8” means you finish <b>1 medium feature every 8 days</b> on the legacy stack.
+        </div>
+      </div>
+
+      <div class="card">
+        <label for="newDays">Improved stack: days per medium feature (code-ready)</label>
+        <input id="newDays" type="number" min="1" step="0.5" value="5" />
+        <div class="hint">
+          Improved stack produces <b>0 features during Cycle 1</b> (first 8 weeks), then starts producing normally in Cycle 2.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <canvas id="chart" height="120"></canvas>
+      <div class="footer" id="summary"></div>
+      <div class="footer">
+        Assumptions:
+        <ul>
+          <li>Time window is fixed: <b>2 cycles</b> = 16 weeks.</li>
+          <li><b>Legacy</b> accumulates linearly: <code>features = elapsed_days / days_per_feature</code>.</li>
+          <li><b>Improved</b> has a ramp: <b>0 output in Cycle 1</b>, then linear output in Cycle 2.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Chart.js via CDN (works on GitHub Pages) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+      // Constants: 2 cycles = 16 weeks, ramp for improved = 8 weeks (C1)
+      const WEEKS_TOTAL = 16;
+      const RAMP_WEEKS_IMPROVED = 8; // C1
+      const DAYS_PER_WEEK = 7;
+      const DAYS_TOTAL = WEEKS_TOTAL * DAYS_PER_WEEK;
+
+      // Build x-axis labels as weeks (0..16)
+      const weekLabels = Array.from({ length: WEEKS_TOTAL + 1 }, (_, i) => `W${i}`);
+
+      function clampPositive(n, fallback) {
+        const v = Number(n);
+        return Number.isFinite(v) && v > 0 ? v : fallback;
+      }
+
+      function buildSeriesLinear(daysPerFeature) {
+        const dpf = clampPositive(daysPerFeature, 8);
+        return Array.from({ length: WEEKS_TOTAL + 1 }, (_, week) => {
+          const elapsedDays = week * DAYS_PER_WEEK;
+          const features = elapsedDays / dpf;
+          return Number(features.toFixed(2));
+        });
+      }
+
+      function buildSeriesWithRamp(daysPerFeature, rampWeeks) {
+        const dpf = clampPositive(daysPerFeature, 5);
+        return Array.from({ length: WEEKS_TOTAL + 1 }, (_, week) => {
+          // 0 output during ramp (including the boundary week)
+          if (week <= rampWeeks) return 0;
+
+          // After ramp, accumulate linearly from 0 at week=rampWeeks
+          const productiveWeeks = week - rampWeeks;
+          const elapsedDays = productiveWeeks * DAYS_PER_WEEK;
+          const features = elapsedDays / dpf;
+          return Number(features.toFixed(2));
+        });
+      }
+
+      const ctx = document.getElementById("chart");
+
+      const chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: weekLabels,
+          datasets: [
+            {
+              label: "Legacy",
+              data: buildSeriesLinear(document.getElementById("legacyDays").value),
+              tension: 0.25,
+              borderWidth: 2,
+              pointRadius: 0
+            },
+            {
+              label: "Improved tech stack (ramps in C1)",
+              data: buildSeriesWithRamp(document.getElementById("newDays").value, RAMP_WEEKS_IMPROVED),
+              tension: 0.25,
+              borderWidth: 2,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "top" },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} features`
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: "Time (weeks) — 2 cycles = 16 weeks" }
+            },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "# of medium features (cumulative)" }
+            }
+          }
+        }
+      });
+
+      function update() {
+        const legacyDays = clampPositive(document.getElementById("legacyDays").value, 8);
+        const newDays = clampPositive(document.getElementById("newDays").value, 5);
+
+        chart.data.datasets[0].data = buildSeriesLinear(legacyDays);
+        chart.data.datasets[1].data = buildSeriesWithRamp(newDays, RAMP_WEEKS_IMPROVED);
+        chart.update();
+
+        const legacyTotal = (DAYS_TOTAL / legacyDays);
+
+        const productiveDaysImproved = (WEEKS_TOTAL - RAMP_WEEKS_IMPROVED) * DAYS_PER_WEEK; // only C2 produces
+        const newTotal = (productiveDaysImproved / newDays);
+
+        const delta = newTotal - legacyTotal;
+
+        document.getElementById("summary").innerHTML =
+          `After <b>${WEEKS_TOTAL} weeks</b> (~${DAYS_TOTAL} days): ` +
+          `<b>Legacy</b> ≈ ${legacyTotal.toFixed(2)} features, ` +
+          `<b>Improved</b> ≈ ${newTotal.toFixed(2)} features ` +
+          `(Δ ≈ ${delta.toFixed(2)}). ` +
+          `<span style="color:#666">(Improved output is 0 during C1, then starts in C2.)</span>`;
+      }
+
+      document.getElementById("legacyDays").addEventListener("input", update);
+      document.getElementById("newDays").addEventListener("input", update);
+
+      update();
+    </script>
+  </body>
+</html>
