@@ -199,7 +199,7 @@
           <div class="controls">
             <div>
               <label for="legacyDays">Legacy: days per medium feature (code-ready)</label>
-              <input id="legacyDays" type="number" min="0.5" step="0.5" value="8" />
+              <input id="legacyDays" type="number" min="1" step="1" value="10" />
               <div class="hint">
                 Example: <b>8</b> means ~<b>0.875</b> features/week (7/8).
               </div>
@@ -207,7 +207,7 @@
 
             <div>
               <label for="newDays">Improved stack: days per medium feature (code-ready)</label>
-              <input id="newDays" type="number" min="0.5" step="0.5" value="5" />
+              <input id="newDays" type="number" min="1" step="1" value="3" />
               <div class="hint">
                 Ramp behavior: weeks 0–8 output is <b>0</b>, then production starts in Cycle 2.
               </div>
@@ -361,4 +361,5 @@
     </script>
   </body>
 </html>
+
 
