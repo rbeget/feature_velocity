@@ -170,7 +170,7 @@
         <div class="badges">
           <span class="badge">⏱️ Window: 16 weeks</span>
           <span class="badge">📈 Y: # features (cumulative)</span>
-          <span class="badge">🧱 Improved ramp: first 8 weeks = 0</span>
+          <span class="badge">🧱 Investment ramp: first 8 weeks = 0</span>
         </div>
       </div>
     </header>
@@ -289,7 +289,9 @@
               data: buildSeriesWithRamp(document.getElementById("newDays").value, RAMP_WEEKS_IMPROVED),
               tension: 0.25,
               borderWidth: 2,
-              pointRadius: 0
+              pointRadius: 0,
+              borderColor: "#22c55e",       // green line
+              backgroundColor: "#22c55e33"  // optional: soft green fill (transparent)
             }
           ]
         },
@@ -359,3 +361,4 @@
     </script>
   </body>
 </html>
+
